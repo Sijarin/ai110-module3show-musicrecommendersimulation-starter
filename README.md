@@ -11,23 +11,38 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-Replace this paragraph with your own summary of what your version does.
+This simulation builds a content-based music recommender that scores songs by measuring how closely each song's audio features match a user's stated taste profile. Rather than learning from other users' behavior (collaborative filtering), this system compares song attributes directly — rewarding proximity to the user's preferred energy level, mood, and genre. The recommender ranks all songs in the catalog by their total weighted score and returns the top matches, making its reasoning fully transparent and inspectable.
 
 ---
 
 ## How The System Works
 
-Explain your design in plain language.
+Real-world recommenders like Spotify blend two strategies: collaborative filtering (learning from what millions of users played and skipped) and content-based filtering (comparing audio features directly). This simulation focuses on the content-based approach — it scores every song by measuring how closely its attributes match a user's taste profile, then returns the top matches with a plain-language explanation of what drove each recommendation.
 
-Some prompts to answer:
+### `Song` Features
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+| Field | Type | Used in scoring |
+|---|---|---|
+| `genre` | str | Genre match bonus |
+| `mood` | str | Mood match bonus |
+| `energy` | float 0–1 | Proximity to `target_energy` (highest weight) |
+| `valence` | float 0–1 | Proximity score — happy vs. melancholic |
+| `tempo_bpm` | float | Proximity score — normalized before comparing |
+| `danceability` | float 0–1 | Proximity score |
+| `acousticness` | float 0–1 | Boosted or penalized by `likes_acoustic` flag |
 
-You can include a simple diagram or bullet list if helpful.
+### `UserProfile` Fields
+
+| Field | Type | What it captures |
+|---|---|---|
+| `favorite_genre` | str | Preferred genre (e.g. `"lofi"`, `"pop"`) |
+| `favorite_mood` | str | Desired vibe (e.g. `"chill"`, `"intense"`) |
+| `target_energy` | float 0–1 | How energetic the user wants the music right now |
+| `likes_acoustic` | bool | Organic/acoustic vs. electronic preference |
+
+### Scoring and Ranking
+
+Each song receives a weighted score: numeric features use `1 - |user_pref - song_value|` (closer = higher), while genre and mood add fixed categorical bonuses. The `Recommender` sorts all songs by descending score and returns the top `k` results.
 
 ---
 
