@@ -5,30 +5,32 @@ Run with:
     python -m src.main
 """
 
-from src.recommender import load_songs, recommend_songs
+from src.recommender import load_songs, recommend_songs, SCORING_MODES, get_max_score
 
-MAX_SCORE = 9.0   # genre(2.0)+mood(1.0)+energy(1.5)+acoustic(0.5)+
-                  # popularity(0.75)+decade(1.0)+mood_tags(1.2)+subgenre(1.0)
 BAR_WIDTH = 20    # character width of the score bar
 
 
-def score_bar(score: float) -> str:
-    """Return a visual bar showing score as a fraction of MAX_SCORE."""
-    filled = round((score / MAX_SCORE) * BAR_WIDTH)
+def score_bar(score: float, max_score: float) -> str:
+    """Return a visual bar showing score as a fraction of max_score."""
+    filled = round((score / max_score) * BAR_WIDTH)
     return "[" + "#" * filled + "-" * (BAR_WIDTH - filled) + "]"
 
 
-def print_profile_results(label: str, user_prefs: dict, songs: list) -> None:
-    """Run the recommender for one profile and print a formatted results block."""
-    recommendations = recommend_songs(user_prefs, songs, k=5)
+def print_profile_results(
+    label: str, user_prefs: dict, songs: list, mode: str = "balanced"
+) -> None:
+    """Run the recommender for one profile+mode and print a formatted results block."""
+    recommendations = recommend_songs(user_prefs, songs, k=5, mode=mode)
+    max_score       = get_max_score(mode)
 
     decade_label = str(user_prefs.get("decade", 0)) + "s" if user_prefs.get("decade", 0) else "(any)"
     tags_label   = ", ".join(user_prefs.get("mood_tags", [])) or "(any)"
 
     print()
-    print("=" * 60)
+    print("=" * 62)
     print(f"  {label}")
-    print("=" * 60)
+    print("=" * 62)
+    print(f"  Scoring mode     : {mode}")
     print(f"  Genre            : {user_prefs.get('genre', '(any)')}")
     print(f"  Mood             : {user_prefs.get('mood', '(any)')}")
     print(f"  Target energy    : {user_prefs.get('energy', 0.5)}")
@@ -38,24 +40,30 @@ def print_profile_results(label: str, user_prefs: dict, songs: list) -> None:
     print(f"  Mood tags        : {tags_label}")
     print(f"  Allow explicit   : {user_prefs.get('allow_explicit', True)}")
     print(f"  Subgenre         : {user_prefs.get('subgenre', '(any)') or '(any)'}")
-    print("-" * 60)
+    print("-" * 62)
 
     for rank, (song, score, reasons) in enumerate(recommendations, start=1):
-        bar = score_bar(score)
+        bar = score_bar(score, max_score)
         print(f"  #{rank}  {song['title']}  —  {song['artist']}")
-        print(f"       Score: {score:.2f} / {MAX_SCORE:.1f}  {bar}")
+        print(f"       Score: {score:.2f} / {max_score:.2f}  {bar}")
         for reason in reasons:
             print(f"       • {reason}")
         print()
 
-    print("=" * 60)
+    print("=" * 62)
 
 
 def main() -> None:
     songs = load_songs("data/songs.csv")
     print(f"\nCatalog loaded: {len(songs)} songs")
 
-    # ── Standard profiles ─────────────────────────────────────────────────────
+    # ── Standard profiles — each uses a different scoring mode ──────────────
+    # The mode is chosen to match the listener's personality:
+    #   Pop fan  → balanced (all signals matter)
+    #   Lofi fan → mood_first (emotional vibe is the point)
+    #   Rock fan → genre_first (genre identity is non-negotiable)
+    #   Workout  → energy_focused (sonic intensity over label)
+    #   Explorer → discovery (break out of the usual bubble)
 
     profiles = [
         (
@@ -71,6 +79,7 @@ def main() -> None:
                 "allow_explicit": True,
                 "subgenre":       "dance pop",
             },
+            "balanced",
         ),
         (
             "PROFILE 2 — Chill Lofi",
@@ -85,6 +94,7 @@ def main() -> None:
                 "allow_explicit": False,
                 "subgenre":       "lo-fi hip hop",
             },
+            "mood_first",
         ),
         (
             "PROFILE 3 — Deep Intense Rock",
@@ -99,34 +109,25 @@ def main() -> None:
                 "allow_explicit": False,
                 "subgenre":       "alternative rock",
             },
+            "genre_first",
         ),
-
-        # ── Adversarial / edge-case profiles ──────────────────────────────────
-
-        # Profile 4 — Conflicting preferences
-        # High energy + melancholic mood don't coexist in the catalog.
-        # Now also requests death metal subgenre with explicit=False,
-        # which penalises Iron Curtain (the only death metal song, explicit=1).
         (
-            "PROFILE 4 — Conflicting (high energy + melancholic, no explicit)",
+            "PROFILE 4 — Workout (high energy, no preference on genre)",
             {
-                "genre":          "metal",
-                "mood":           "melancholic",
-                "energy":         0.92,
+                "genre":          "",
+                "mood":           "",
+                "energy":         0.95,
                 "likes_acoustic": False,
-                "popularity":     65,
-                "decade":         2010,
-                "mood_tags":      ["aggressive", "dark"],
-                "allow_explicit": False,
-                "subgenre":       "death metal",
+                "popularity":     75,
+                "decade":         2020,
+                "mood_tags":      ["aggressive", "energetic"],
+                "allow_explicit": True,
+                "subgenre":       "",
             },
+            "energy_focused",
         ),
-
-        # Profile 5 — Genre orphan
-        # Only one reggae song in the catalog. Tests graceful fallback via
-        # energy/acoustic similarity + new advanced rules.
         (
-            "PROFILE 5 — Genre Orphan (reggae, uplifting)",
+            "PROFILE 5 — Genre Orphan / Explorer (reggae)",
             {
                 "genre":          "reggae",
                 "mood":           "uplifting",
@@ -138,11 +139,8 @@ def main() -> None:
                 "allow_explicit": False,
                 "subgenre":       "reggae fusion",
             },
+            "discovery",
         ),
-
-        # Profile 6 — Dead-centre neutral
-        # No genre, mood, or subgenre preference. Tests pure numeric scoring:
-        # energy proximity + popularity proximity + decade matching decide results.
         (
             "PROFILE 6 — Dead-Centre Neutral (no genre/mood preference)",
             {
@@ -156,11 +154,46 @@ def main() -> None:
                 "allow_explicit": True,
                 "subgenre":       "",
             },
+            "balanced",
         ),
     ]
 
-    for label, prefs in profiles:
-        print_profile_results(label, prefs, songs)
+    for label, prefs, mode in profiles:
+        print_profile_results(label, prefs, songs, mode=mode)
+
+    # ── Mode comparison: same profile, all five strategies ───────────────────
+    # Profile 3 (Deep Intense Rock) is the most interesting test case because
+    # of the known Gym Hero vs Iron Curtain problem. Running it under every
+    # mode shows exactly how the weight table changes the answer.
+
+    print()
+    print()
+    print("*" * 62)
+    print("  MODE COMPARISON")
+    print("  Profile: Deep Intense Rock — same preferences, 5 modes")
+    print("  Watch how Gym Hero (pop/intense) vs Iron Curtain (metal/explicit)")
+    print("  swap ranks as the weight strategy changes.")
+    print("*" * 62)
+
+    rock_prefs = {
+        "genre":          "rock",
+        "mood":           "intense",
+        "energy":         0.91,
+        "likes_acoustic": False,
+        "popularity":     70,
+        "decade":         2010,
+        "mood_tags":      ["aggressive", "powerful"],
+        "allow_explicit": False,
+        "subgenre":       "alternative rock",
+    }
+
+    for mode_name in SCORING_MODES:
+        print_profile_results(
+            f"[{mode_name.upper()}]  Deep Intense Rock",
+            rock_prefs,
+            songs,
+            mode=mode_name,
+        )
 
     print()
 
