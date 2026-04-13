@@ -107,23 +107,23 @@ flowchart TD
 
 ---
 
-## Sample Terminal Output
+## Terminal Output — Stress Test Across 6 Profiles
 
-Running `python -m src.main` with the default `pop / happy / energy 0.82` profile produces:
+`python -m src.main` runs all profiles in sequence. Results and analysis below.
+
+---
+
+### Profile 1 — High-Energy Pop
 
 ```
 ====================================================
-   MUSIC RECOMMENDER SIMULATION
+  PROFILE 1 — High-Energy Pop
 ====================================================
-  Catalog loaded : 18 songs
   Genre          : pop
   Mood           : happy
   Target energy  : 0.82
   Likes acoustic : False
-====================================================
-  Top 5 Recommendations
-====================================================
-
+----------------------------------------------------
   #1  Sunrise City  —  Neon Echo
        Score: 5.00 / 5.0  [####################]
        • genre match (+2.0)
@@ -152,15 +152,231 @@ Running `python -m src.main` with the default `pop / happy / energy 0.82` profil
        Score: 1.90 / 5.0  [########------------]
        • energy proximity (+1.4)
        • electronic sound matches preference (+0.5)
-
 ====================================================
 ```
 
-**Why these results make sense for a `pop / happy` profile:**
-- `Sunrise City` is the only song that hits all four rules — perfect score of 5.00
-- `Gym Hero` loses only the mood bonus (mood=intense, not happy) — still a strong #2
-- `Rooftop Lights` (indie pop) gains the mood bonus but not the genre bonus — lands at #3
-- `Block Party Anthem` and `Night Drive Loop` have no genre/mood match but high energy and low acousticness keep them in the top 5 over chill/acoustic tracks
+`Sunrise City` hits all four rules for a perfect 5.00. `Gym Hero` is a strong #2 despite missing the mood bonus — its genre match and near-identical energy carry it. `Rooftop Lights` (indie pop) compensates for the genre mismatch with the mood bonus. The bottom two slots are filled by energy proximity alone.
+
+---
+
+### Profile 2 — Chill Lofi
+
+```
+====================================================
+  PROFILE 2 — Chill Lofi
+====================================================
+  Genre          : lofi
+  Mood           : chill
+  Target energy  : 0.38
+  Likes acoustic : True
+----------------------------------------------------
+  #1  Library Rain  —  Paper Lanterns
+       Score: 4.96 / 5.0  [####################]
+       • genre match (+2.0)
+       • mood match (+1.0)
+       • energy proximity (+1.46)
+       • acoustic sound matches preference (+0.5)
+
+  #2  Midnight Coding  —  LoRoom
+       Score: 4.94 / 5.0  [####################]
+       • genre match (+2.0)
+       • mood match (+1.0)
+       • energy proximity (+1.44)
+       • acoustic sound matches preference (+0.5)
+
+  #3  Focus Flow  —  LoRoom
+       Score: 3.97 / 5.0  [################----]
+       • genre match (+2.0)
+       • energy proximity (+1.47)
+       • acoustic sound matches preference (+0.5)
+
+  #4  Spacewalk Thoughts  —  Orbit Bloom
+       Score: 2.85 / 5.0  [###########---------]
+       • mood match (+1.0)
+       • energy proximity (+1.35)
+       • acoustic sound matches preference (+0.5)
+
+  #5  Coffee Shop Stories  —  Slow Stereo
+       Score: 1.98 / 5.0  [########------------]
+       • energy proximity (+1.48)
+       • acoustic sound matches preference (+0.5)
+====================================================
+```
+
+The top three are all lofi. `Focus Flow` misses the mood bonus (mood=focused, not chill) but keeps its lofi genre match and acoustic bonus. `Spacewalk Thoughts` (ambient/chill) and `Coffee Shop Stories` (jazz) earn their spots through low energy and acoustic character, with no genre match at all.
+
+---
+
+### Profile 3 — Deep Intense Rock
+
+```
+====================================================
+  PROFILE 3 — Deep Intense Rock
+====================================================
+  Genre          : rock
+  Mood           : intense
+  Target energy  : 0.91
+  Likes acoustic : False
+----------------------------------------------------
+  #1  Storm Runner  —  Voltline
+       Score: 5.00 / 5.0  [####################]
+       • genre match (+2.0)
+       • mood match (+1.0)
+       • energy proximity (+1.5)
+       • electronic sound matches preference (+0.5)
+
+  #2  Gym Hero  —  Max Pulse
+       Score: 2.97 / 5.0  [############--------]
+       • mood match (+1.0)
+       • energy proximity (+1.47)
+       • electronic sound matches preference (+0.5)
+
+  #3  Block Party Anthem  —  Krave
+       Score: 1.94 / 5.0  [########------------]
+       • energy proximity (+1.44)
+       • electronic sound matches preference (+0.5)
+
+  #4  Drop the Signal  —  FRQNCY
+       Score: 1.94 / 5.0  [########------------]
+       • energy proximity (+1.44)
+       • electronic sound matches preference (+0.5)
+
+  #5  Iron Curtain  —  Dreadnought
+       Score: 1.91 / 5.0  [########------------]
+       • energy proximity (+1.41)
+       • electronic sound matches preference (+0.5)
+====================================================
+```
+
+`Storm Runner` is the only rock song — it takes a perfect score. `Gym Hero` earns #2 via the mood=intense match. The remaining three (hip-hop, EDM, metal) earn their slots purely through high energy proximity — the system correctly identifies them as the closest sonic neighbours even without a rock genre match.
+
+---
+
+### Profile 4 — Adversarial: High Energy + Melancholic Mood
+
+```
+====================================================
+  PROFILE 4 — Conflicting (high energy + melancholic mood)
+====================================================
+  Genre          : metal
+  Mood           : melancholic
+  Target energy  : 0.92
+  Likes acoustic : False
+----------------------------------------------------
+  #1  Iron Curtain  —  Dreadnought
+       Score: 3.93 / 5.0  [################----]
+       • genre match (+2.0)
+       • energy proximity (+1.43)
+       • electronic sound matches preference (+0.5)
+
+  #2  Storm Runner  —  Voltline
+       Score: 1.98 / 5.0  [########------------]
+       • energy proximity (+1.48)
+       • electronic sound matches preference (+0.5)
+
+  #3  Gym Hero  —  Max Pulse
+       Score: 1.98 / 5.0  [########------------]
+       • energy proximity (+1.48)
+       • electronic sound matches preference (+0.5)
+
+  #4  Drop the Signal  —  FRQNCY
+       Score: 1.96 / 5.0  [########------------]
+       • energy proximity (+1.46)
+       • electronic sound matches preference (+0.5)
+
+  #5  Block Party Anthem  —  Krave
+       Score: 1.92 / 5.0  [########------------]
+       • energy proximity (+1.42)
+       • electronic sound matches preference (+0.5)
+====================================================
+```
+
+**The system was tricked.** The mood=melancholic bonus never fires — not one high-energy song in the catalog is tagged as melancholic. The scoring logic has no mechanism to resolve the conflict, so it simply ignores the mood and optimises for energy + genre instead. The actual melancholic song (`Fading Letters`, soul/energy=0.33) never appears because its energy score is too low. A real-world system might handle this by blending mood into a softer weight rather than an all-or-nothing bonus.
+
+---
+
+### Profile 5 — Adversarial: Genre Orphan (Reggae)
+
+```
+====================================================
+  PROFILE 5 — Genre Orphan (reggae, uplifting)
+====================================================
+  Genre          : reggae
+  Mood           : uplifting
+  Target energy  : 0.61
+  Likes acoustic : True
+----------------------------------------------------
+  #1  Island Morning  —  Reef Roots
+       Score: 5.00 / 5.0  [####################]
+       • genre match (+2.0)
+       • mood match (+1.0)
+       • energy proximity (+1.5)
+       • acoustic sound matches preference (+0.5)
+
+  #2  Dusty Highway  —  The Ramblers
+       Score: 1.80 / 5.0  [#######-------------]
+       • energy proximity (+1.3)
+       • acoustic sound matches preference (+0.5)
+
+  #3  Midnight Coding  —  LoRoom
+       Score: 1.72 / 5.0  [#######-------------]
+       • energy proximity (+1.22)
+       • acoustic sound matches preference (+0.5)
+
+  #4  Focus Flow  —  LoRoom
+       Score: 1.69 / 5.0  [#######-------------]
+       • energy proximity (+1.19)
+       • acoustic sound matches preference (+0.5)
+
+  #5  Coffee Shop Stories  —  Slow Stereo
+       Score: 1.64 / 5.0  [#######-------------]
+       • energy proximity (+1.14)
+       • acoustic sound matches preference (+0.5)
+====================================================
+```
+
+The gap between #1 (5.00) and #2 (1.80) reveals the orphan problem: once the single reggae song is placed, the remaining four slots are filled entirely on energy proximity + acoustic preference. The scores collapse to a narrow band (1.64–1.80), meaning the ranking among #2–5 is almost arbitrary. A real recommender would widen the catalog or fall back to a broader similarity measure.
+
+---
+
+### Profile 6 — Adversarial: Dead-Centre Neutral
+
+```
+====================================================
+  PROFILE 6 — Dead-Centre Neutral (no genre/mood preference)
+====================================================
+  Genre          : 
+  Mood           : 
+  Target energy  : 0.5
+  Likes acoustic : False
+----------------------------------------------------
+  #1  Night Drive Loop  —  Neon Echo
+       Score: 1.62 / 5.0  [######--------------]
+       • energy proximity (+1.12)
+       • electronic sound matches preference (+0.5)
+
+  #2  Rooftop Lights  —  Indigo Parade
+       Score: 1.61 / 5.0  [######--------------]
+       • energy proximity (+1.11)
+       • electronic sound matches preference (+0.5)
+
+  #3  Sunrise City  —  Neon Echo
+       Score: 1.52 / 5.0  [######--------------]
+       • energy proximity (+1.02)
+       • electronic sound matches preference (+0.5)
+
+  #4  Dusty Highway  —  The Ramblers
+       Score: 1.47 / 5.0  [######--------------]
+       • energy proximity (+1.47)
+
+  #5  Block Party Anthem  —  Krave
+       Score: 1.45 / 5.0  [######--------------]
+       • energy proximity (+0.95)
+       • electronic sound matches preference (+0.5)
+====================================================
+```
+
+The max score is only 1.62 out of 5.0 — without genre or mood preferences no categorical bonuses fire, so the system is operating at ~32% capacity. The `likes_acoustic=False` flag still acts as a tiebreaker, which is why `Dusty Highway` (acoustic=0.82) scores 1.47 without the acoustic bonus while electronic tracks with similar energy outscore it. The neutral profile exposes that the recommender is heavily dependent on categorical signals to be useful.
 
 ---
 
@@ -201,23 +417,80 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+### Experiment 1 — Does Profile 3 (Deep Intense Rock) feel right?
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+**Profile:** `genre=rock, mood=intense, energy=0.91, likes_acoustic=False`
+
+**What the system returned:**
+
+| Rank | Song | Genre | Score |
+|---|---|---|---|
+| #1 | Storm Runner | rock | 5.00 |
+| **#2** | **Gym Hero** | **pop** | **2.97** |
+| #3 | Block Party Anthem | hip-hop | 1.94 |
+| #4 | Drop the Signal | edm | 1.94 |
+| **#5** | **Iron Curtain** | **metal** | **1.91** |
+
+**What feels wrong:** A deep rock listener would expect `Iron Curtain` (metal, angry, energy=0.97) to rank above `Gym Hero` (pop, intense, energy=0.93). Metal is far closer to rock in sonic character than pop is. Yet `Gym Hero` lands at #2 and `Iron Curtain` lands at #5.
+
+**Why it happened — the math:**
+
+```
+Gym Hero   → mood=intense matches → +1.0  |  energy gap 0.02 → +1.47  |  acoustic → +0.5  = 2.97
+Iron Curtain → mood=angry no match → +0.0  |  energy gap 0.06 → +1.41  |  acoustic → +0.5  = 1.91
+```
+
+The `+1.0` mood bonus is decisive. Both songs have nearly identical energy proximity to the target (gap of 0.02 vs 0.06), so the mood match on `Gym Hero` is the only differentiator — and it's worth more than the entire difference in their energy scores.
+
+**Root cause:** The system has no concept of *genre adjacency*. It treats `metal` and `pop` as equally wrong for a `rock` listener — both score 0 on the genre rule. In reality, metal is sonically far closer to rock than pop is. A real system would award partial genre points for nearby genres (e.g. rock→metal = 1.5, rock→pop = 0).
+
+**Does the genre weight feel too strong overall?** No — looking across all six profiles, every profile surfaces a different #1 song. The genre weight doesn't force repetition. The issue here is specifically the *mood weight overpowering energy proximity when two songs are close in energy*, combined with the absence of genre adjacency.
+
+### Experiment 2 — Does reducing MOOD_POINTS from 1.0 → 0.75 fix the intuition gap?
+
+Manually tracing the new scores for Profile 3 with `MOOD_POINTS = 0.75`:
+
+```
+Gym Hero    → mood +0.75  |  energy +1.47  |  acoustic +0.5  = 2.72
+Iron Curtain → mood  0.00  |  energy +1.41  |  acoustic +0.5  = 1.91
+```
+
+**Result: Gym Hero still wins.** The gap narrows from 1.06 to 0.81, but the ranking doesn't change. The only real fix is genre adjacency — a structural change to the scoring rule, not just a weight tweak. This confirms the finding: weight tuning alone cannot solve a missing feature.
+
+### Experiment 3 — Genre weight at 2.0 vs 0.5
+
+If `GENRE_POINTS` were reduced to `0.5`:
+
+```
+Sunrise City (pop/happy, Profile 1) → genre +0.5 | mood +1.0 | energy +1.5 | acoustic +0.5 = 3.5
+Rooftop Lights (indie pop/happy)    → genre  0.0 | mood +1.0 | energy +1.41 | acoustic +0.5 = 2.91
+```
+
+`Sunrise City` still wins, but the #2 slot would now be more competitive — songs that match mood + energy closely could overtake a genre-match song with poor energy. A lower genre weight would make the system more forgiving of cross-genre similarity, at the cost of no longer clearly separating lofi from rock from pop in profiles 1–3.
+
+### Experiment 4 — Weight shift: GENRE 2.0→1.0, ENERGY 1.5→3.0 (actually run)
+
+This was applied live (`GENRE_POINTS=1.0`, `ENERGY_WEIGHT=3.0`, max score 5.5) and all six profiles were re-run. Key differences observed:
+
+| Profile | Before (original) | After (weight shift) | Verdict |
+|---|---|---|---|
+| 1 — Pop/Happy | #2 Gym Hero, #3 Rooftop Lights | **#2 Rooftop Lights, #3 Gym Hero** | More accurate — Rooftop Lights (happy mood, close energy) feels like a better #2 than Gym Hero (intense mood) |
+| 3 — Rock/Intense | #2 Gym Hero, #5 Iron Curtain | #2 Gym Hero, #5 Iron Curtain | **Unchanged** — Gym Hero still beats Iron Curtain despite doubled energy weight, because their energy values are nearly identical (gap 0.02 vs 0.06) |
+| 5 — Reggae Orphan | #5 Coffee Shop Stories | **#5 Velvet Underground (R&B)** | More accurate — R&B is a closer sonic neighbour to reggae than jazz |
+| 6 — Neutral | #1 Night Drive Loop | **#1 Dusty Highway (country)** | Unexpected — country with acousticness=0.82 wins on energy proximity alone for a `likes_acoustic=False` user, which feels counterintuitive |
+
+**Conclusion:** The weight shift made Profile 1 and 5 *more* accurate, Profile 6 *less* accurate, and left the core Profile 3 flaw entirely unchanged. This proves the Gym Hero problem is structural (missing genre adjacency), not solvable by weight tuning. Original weights were restored.
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
-
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
+- **No genre adjacency.** Metal and pop both score zero for a rock listener. The system cannot reason about sonic similarity between genres — only exact matches count.
+- **Mood bonus overrides sonic reality.** A +1.0 mood match can promote a pop song above a metal song when both are at similar energy levels, producing recommendations that feel wrong to a listener even though the math is correct.
+- **Tiny catalog creates orphaned genres.** Ten of fifteen genres have only one song. The fallback slots after a genre match are filled by energy proximity alone, which can jump to unrelated genres.
+- **No repeat-artist filter.** The same artist can appear twice in the top 5 if they have two similarly-scoring songs.
+- **Neutral users get poor results.** Without genre or mood preferences, the maximum achievable score is ~1.6/5.0 — the system is too dependent on categorical bonuses to serve undecided listeners.
+- **No lyrics, context, or listening history.** The system cannot learn from what a user actually plays, skips, or saves over time.
 
 You will go deeper on this in your model card.
 
