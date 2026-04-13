@@ -5,7 +5,11 @@ Run with:
     python -m src.main
 """
 
-from src.recommender import load_songs, recommend_songs, SCORING_MODES, get_max_score
+from src.recommender import (
+    load_songs, recommend_songs, diverse_recommend_songs,
+    SCORING_MODES, get_max_score,
+    ARTIST_REPEAT_PENALTY, GENRE_REPEAT_PENALTY,
+)
 
 BAR_WIDTH = 20    # character width of the score bar
 
@@ -194,6 +198,88 @@ def main() -> None:
             songs,
             mode=mode_name,
         )
+
+    # ── Diversity penalty demo ────────────────────────────────────────────────
+    # Show two profiles that produce artist repeats without diversity logic,
+    # then re-run them with diverse_recommend_songs to show the fix.
+    #
+    # Profile 2 (mood_first):   LoRoom appears at #2 AND #4
+    # Profile 6 (balanced):     LoRoom appears at #4 AND #5
+
+    print()
+    print()
+    print("*" * 62)
+    print("  DIVERSITY PENALTY DEMO")
+    print(f"  Artist repeat penalty : {ARTIST_REPEAT_PENALTY} per occurrence")
+    print(f"  Genre  repeat penalty : {GENRE_REPEAT_PENALTY} per occurrence")
+    print("  Penalties compound — a 3rd song from the same artist")
+    print("  loses twice the single-repeat penalty.")
+    print("*" * 62)
+
+    diversity_cases = [
+        (
+            "Profile 2 — Chill Lofi  (LoRoom repeats at #2 and #4)",
+            {
+                "genre":          "lofi",
+                "mood":           "chill",
+                "energy":         0.38,
+                "likes_acoustic": True,
+                "popularity":     58,
+                "decade":         2020,
+                "mood_tags":      ["nostalgic", "peaceful"],
+                "allow_explicit": False,
+                "subgenre":       "lo-fi hip hop",
+            },
+            "mood_first",
+        ),
+        (
+            "Profile 6 — Neutral  (LoRoom repeats at #4 and #5)",
+            {
+                "genre":          "",
+                "mood":           "",
+                "energy":         0.50,
+                "likes_acoustic": False,
+                "popularity":     50,
+                "decade":         0,
+                "mood_tags":      [],
+                "allow_explicit": True,
+                "subgenre":       "",
+            },
+            "balanced",
+        ),
+    ]
+
+    for label, prefs, mode in diversity_cases:
+        max_score = get_max_score(mode)
+
+        # --- WITHOUT diversity ---
+        standard = recommend_songs(prefs, songs, k=5, mode=mode)
+        print()
+        print("=" * 62)
+        print(f"  WITHOUT diversity — {label}")
+        print(f"  mode: {mode}  |  max score: {max_score:.2f}")
+        print("-" * 62)
+        for rank, (song, sc, reasons) in enumerate(standard, 1):
+            bar = score_bar(sc, max_score)
+            print(f"  #{rank}  {song['title']}  —  {song['artist']}  [{song['genre']}]")
+            print(f"       Score: {sc:.2f} / {max_score:.2f}  {bar}")
+        print("=" * 62)
+
+        # --- WITH diversity ---
+        diverse = diverse_recommend_songs(prefs, songs, k=5, mode=mode)
+        print()
+        print("=" * 62)
+        print(f"  WITH diversity    — {label}")
+        print(f"  mode: {mode}  |  max score: {max_score:.2f}")
+        print("-" * 62)
+        for rank, (song, sc, reasons) in enumerate(diverse, 1):
+            bar = score_bar(sc, max_score)
+            print(f"  #{rank}  {song['title']}  —  {song['artist']}  [{song['genre']}]")
+            print(f"       Score: {sc:.2f} / {max_score:.2f}  {bar}")
+            for r in reasons:
+                if "penalty" in r:
+                    print(f"       • {r}")
+        print("=" * 62)
 
     print()
 

@@ -361,3 +361,97 @@ def recommend_songs(
         for song in songs
     ]
     return sorted(scored, key=lambda entry: entry[1], reverse=True)[:k]
+
+
+# ---------------------------------------------------------------------------
+# Diversity penalty constants
+#
+# Inline Chat design prompt used to specify this logic:
+#   "Add a diverse_recommend_songs function that scores all songs first, then
+#    greedily builds the top-k list one slot at a time. Before each pick,
+#    subtract ARTIST_REPEAT_PENALTY from any candidate whose artist is already
+#    in the selected list, and subtract GENRE_REPEAT_PENALTY per occurrence of
+#    their genre already selected. Penalties compound: a third song from the
+#    same artist loses twice the single-repeat penalty. Append penalty lines to
+#    the reasons list so the output stays fully transparent."
+# ---------------------------------------------------------------------------
+ARTIST_REPEAT_PENALTY: float = -1.5  # per occurrence of artist in selected list
+GENRE_REPEAT_PENALTY:  float = -0.5  # per occurrence of genre  in selected list
+
+
+def diverse_recommend_songs(
+    user_prefs: Dict,
+    songs: List[Dict],
+    k: int = 5,
+    mode: str = "balanced",
+    artist_penalty: float = ARTIST_REPEAT_PENALTY,
+    genre_penalty:  float = GENRE_REPEAT_PENALTY,
+) -> List[Tuple[Dict, float, List[str]]]:
+    """
+    Greedy re-ranking that enforces artist and genre diversity.
+
+    Algorithm:
+      1. Score every song with the chosen mode (initial scores, no penalties).
+      2. Build the result list one slot at a time.
+      3. Before each pick, compute an adjusted score for every remaining
+         candidate:  adj = raw_score
+                          + artist_penalty × (times artist already selected)
+                          + genre_penalty  × (times genre  already selected)
+      4. The candidate with the highest adjusted score fills the next slot.
+         Its penalty lines are appended to its reasons list so the caller
+         can see exactly why it was promoted or demoted.
+
+    This is O(k × n) — fast enough for any realistic catalog size.
+    """
+    weights = SCORING_MODES[mode]
+
+    # Step 1 — score every song once; keep raw scores and reasons
+    pool: List[Tuple[Dict, float, List[str]]] = [
+        (song, *score_song(user_prefs, song, weights))
+        for song in songs
+    ]
+    # Sort pool so ties are broken by raw score (highest first)
+    pool.sort(key=lambda x: x[1], reverse=True)
+
+    selected: List[Tuple[Dict, float, List[str]]] = []
+
+    # Step 2-4 — greedy selection with diversity adjustments
+    while len(selected) < k and pool:
+        # Count how many times each artist / genre already appears in selected
+        artist_counts: Dict[str, int] = {}
+        genre_counts:  Dict[str, int] = {}
+        for sel_song, _, _ in selected:
+            a = sel_song["artist"]
+            g = sel_song["genre"]
+            artist_counts[a] = artist_counts.get(a, 0) + 1
+            genre_counts[g]  = genre_counts.get(g, 0) + 1
+
+        best_adj   = float("-inf")
+        best_idx   = 0
+        best_extra: List[str] = []
+
+        for i, (song, raw_score, _) in enumerate(pool):
+            adj_score = raw_score
+            extra: List[str] = []
+
+            a_reps = artist_counts.get(song["artist"], 0)
+            if a_reps > 0:
+                pen = round(artist_penalty * a_reps, 2)
+                adj_score += pen
+                extra.append(f"artist repeat penalty ({pen})")
+
+            g_reps = genre_counts.get(song["genre"], 0)
+            if g_reps > 0:
+                pen = round(genre_penalty * g_reps, 2)
+                adj_score += pen
+                extra.append(f"genre repeat penalty ({pen})")
+
+            if adj_score > best_adj:
+                best_adj  = adj_score
+                best_idx  = i
+                best_extra = extra
+
+        song, raw_score, raw_reasons = pool.pop(best_idx)
+        selected.append((song, round(best_adj, 4), raw_reasons + best_extra))
+
+    return selected
