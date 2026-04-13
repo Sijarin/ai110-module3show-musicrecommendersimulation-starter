@@ -502,10 +502,9 @@ Read and complete `model_card.md`:
 
 [**Model Card**](model_card.md)
 
-Write 1 to 2 paragraphs here about what you learned:
+Building this system showed me that a recommender does not need to be complex to produce results that feel right. Four simple rules — genre, mood, energy, and acoustic preference — were enough to surface genuinely good matches for clear listener profiles. What the system cannot do is reason about relationships between categories. Metal and pop both score zero for a rock listener, even though metal is far closer in sound. That gap between "matching a label" and "understanding similarity" is where the system fails, and no amount of weight tuning fixes it.
 
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
+The bias lesson was also clear. When one category dominates the scoring (genre is worth 40% of the max score), it creates a filter bubble even in a tiny 18-song catalog. Users with niche tastes get one perfect match and then four fallback songs chosen by energy alone. In a real product at scale, those same dynamics would trap listeners in tight clusters and make discovery unlikely. Fairness problems in recommenders are not always about the data — sometimes the scoring rules themselves encode the bias.
 
 
 ---
