@@ -5,6 +5,8 @@ Run with:
     python -m src.main
 """
 
+from tabulate import tabulate
+
 from src.recommender import (
     load_songs, recommend_songs, diverse_recommend_songs,
     SCORING_MODES, get_max_score,
@@ -20,10 +22,43 @@ def score_bar(score: float, max_score: float) -> str:
     return "[" + "#" * filled + "-" * (BAR_WIDTH - filled) + "]"
 
 
+def print_summary_table(results: list, max_score: float) -> None:
+    """
+    Copilot Inline Chat prompt used to design this function:
+      "Using tabulate with fancy_grid format, display the top-k results as a
+       table with columns: Rank (#), Song+Artist (two-line cell), Genre with
+       subgenre on line 2, Score (x.xx/max on line 1 and ASCII bar on line 2),
+       and Reasons (every scoring reason on its own bullet line). The Reasons
+       column must show ALL reasons — including diversity and explicit penalties —
+       so nothing about the scoring logic is hidden from the reader."
+
+    Each row is one recommended song.  Multi-line cells are supported by
+    tabulate's fancy_grid format, which uses Unicode box-drawing characters.
+    """
+    rows = []
+    for rank, (song, score, reasons) in enumerate(results, 1):
+        bar        = score_bar(score, max_score)
+        score_cell = f"{score:.2f} / {max_score:.2f}\n{bar}"
+
+        song_cell  = f"{song['title']}\n{song['artist']}"
+
+        genre_cell = song["genre"]
+        if song.get("subgenre"):
+            genre_cell += f"\n{song['subgenre']}"
+
+        # All reasons, each on its own line — penalties are included verbatim
+        reason_cell = "\n".join(f"• {r}" for r in reasons)
+
+        rows.append([f"#{rank}", song_cell, genre_cell, score_cell, reason_cell])
+
+    headers = ["#", "Song / Artist", "Genre / Subgenre", "Score", "Reasons"]
+    print(tabulate(rows, headers=headers, tablefmt="fancy_grid"))
+
+
 def print_profile_results(
     label: str, user_prefs: dict, songs: list, mode: str = "balanced"
 ) -> None:
-    """Run the recommender for one profile+mode and print a formatted results block."""
+    """Print a profile header block followed by a summary table of results."""
     recommendations = recommend_songs(user_prefs, songs, k=5, mode=mode)
     max_score       = get_max_score(mode)
 
@@ -44,17 +79,9 @@ def print_profile_results(
     print(f"  Mood tags        : {tags_label}")
     print(f"  Allow explicit   : {user_prefs.get('allow_explicit', True)}")
     print(f"  Subgenre         : {user_prefs.get('subgenre', '(any)') or '(any)'}")
-    print("-" * 62)
+    print()
 
-    for rank, (song, score, reasons) in enumerate(recommendations, start=1):
-        bar = score_bar(score, max_score)
-        print(f"  #{rank}  {song['title']}  —  {song['artist']}")
-        print(f"       Score: {score:.2f} / {max_score:.2f}  {bar}")
-        for reason in reasons:
-            print(f"       • {reason}")
-        print()
-
-    print("=" * 62)
+    print_summary_table(recommendations, max_score)
 
 
 def main() -> None:
@@ -255,31 +282,16 @@ def main() -> None:
         # --- WITHOUT diversity ---
         standard = recommend_songs(prefs, songs, k=5, mode=mode)
         print()
-        print("=" * 62)
-        print(f"  WITHOUT diversity — {label}")
-        print(f"  mode: {mode}  |  max score: {max_score:.2f}")
-        print("-" * 62)
-        for rank, (song, sc, reasons) in enumerate(standard, 1):
-            bar = score_bar(sc, max_score)
-            print(f"  #{rank}  {song['title']}  —  {song['artist']}  [{song['genre']}]")
-            print(f"       Score: {sc:.2f} / {max_score:.2f}  {bar}")
-        print("=" * 62)
+        print(f"  WITHOUT diversity — {label}  [mode: {mode}]")
+        print_summary_table(standard, max_score)
 
         # --- WITH diversity ---
+        # Penalty lines are included in the Reasons column so the reader can
+        # see exactly which songs were demoted and by how much.
         diverse = diverse_recommend_songs(prefs, songs, k=5, mode=mode)
         print()
-        print("=" * 62)
-        print(f"  WITH diversity    — {label}")
-        print(f"  mode: {mode}  |  max score: {max_score:.2f}")
-        print("-" * 62)
-        for rank, (song, sc, reasons) in enumerate(diverse, 1):
-            bar = score_bar(sc, max_score)
-            print(f"  #{rank}  {song['title']}  —  {song['artist']}  [{song['genre']}]")
-            print(f"       Score: {sc:.2f} / {max_score:.2f}  {bar}")
-            for r in reasons:
-                if "penalty" in r:
-                    print(f"       • {r}")
-        print("=" * 62)
+        print(f"  WITH diversity    — {label}  [mode: {mode}]")
+        print_summary_table(diverse, max_score)
 
     print()
 
